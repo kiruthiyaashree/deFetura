@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "135232458749",
+    "project_id": "de-fuetura",
+    "storage_bucket": "de-fuetura.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:135232458749:android:54f5221df0009490859394",
+        "android_client_info": {
+          "package_name": "com.example.construction"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCOrbVFSB8CNfKCf4OanW58iYhDwl6g8P8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
