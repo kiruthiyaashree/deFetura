@@ -18,7 +18,6 @@ class _SignUpState extends State<SignUp> {
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
-  final userRepo = Get.put(UserRepository());
   void _signUp() async {
     String name = _nameController.text.trim();
     String email = _emailController.text.trim();
@@ -66,29 +65,6 @@ class _SignUpState extends State<SignUp> {
       return; // Exit the method
     }
 
-    //  data to backend server for registration
-    final user = UserModel(name: name, email: email, password: password);
-    try {
-      await userRepo.createUser(user);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Account created successfully.'),
-          backgroundColor: Colors.green,
-          behavior: SnackBarBehavior.floating,
-        ),
-      );// Navigation to the login screen
-      Navigator.pushReplacement(
-        context,
-        MaterialPageRoute(builder: (context) => Login()),
-      );
-    } catch (error) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('Failed to create account'),
-          backgroundColor: Colors.red.withOpacity(0.1),
-        ),
-      );
-    }
   }
 
   @override

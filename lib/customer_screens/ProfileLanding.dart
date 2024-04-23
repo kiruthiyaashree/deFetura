@@ -6,8 +6,7 @@ import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'dart:io'; // Import path_provider plugin
 
 class Profile extends StatefulWidget {
-  final String userName;
-  const Profile({Key? key, required this.userName}) : super(key: key);
+  const Profile({Key? key}) : super(key: key);
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -135,10 +134,6 @@ class _ProfileState extends State<Profile> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            'name:${widget.userName}',
-            style: TextStyle(fontSize: 20),
-          ),
           Text(
             'Project Name: ABC Project',
             style: TextStyle(fontSize: 20),
@@ -423,16 +418,7 @@ class TrackingStage {
 
 void main() {
   runApp(MaterialApp(
-    home: Profile(userName: askUserName()),
+    home: Profile(),
   ));
 }
 
-String askUserName() {
-  print('Enter your name:');
-  String? name = stdin.readLineSync();
-  while (name == null || name.isEmpty) {
-    print('Please enter a valid name:');
-    name = stdin.readLineSync();
-  }
-  return name;
-}
