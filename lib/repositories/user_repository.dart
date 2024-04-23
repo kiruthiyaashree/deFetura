@@ -14,6 +14,22 @@ class UserRepository extends GetxController {
       rethrow; // Rethrow the error to handle it in the calling code
     }
   }
+  Future<List<UserModel>> getUsers() async {
+    try {
+      // Query Firestore to retrieve all user documents
+      final querySnapshot = await _db.collection('Users').get();
+
+      // Convert query snapshot to a list of UserModel objects
+      final List<UserModel> users = querySnapshot.docs
+          .map((doc) => UserModel.fromMap(doc.data()))
+          .toList();
+
+      return users;
+    } catch (error) {
+      // Handle error appropriately (e.g., logging, error reporting, etc.)
+      throw error;
+    }
+  }
 
   Future<UserModel?> loginUser(String email, String password) async {
     try {
