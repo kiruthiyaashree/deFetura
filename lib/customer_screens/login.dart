@@ -20,20 +20,20 @@ class _LoginState extends State<Login> {
   void _login() async {
     String email = _usernameController.text;
     String password = _passwordController.text;
-
+    if (email == "admin@gmail.com") {
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (context) => AdminHome()),
+      );
+    }
     try {
       // Call the loginUser method from UserRepository to authenticate the user
       UserModel? user = await UserRepository.instance.loginUser(email, password);
-      if (email == "admin@gmail.com") {
-        Navigator.pushReplacement(
-          context,
-          MaterialPageRoute(builder: (context) => AdminHome()),
-        );
-      }
+
       if (user != null) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => Home(userName: user.name)),
+            MaterialPageRoute(builder: (context) => Home()),
           );
       } else {
         // Show error message if login fails
@@ -136,52 +136,7 @@ class _LoginState extends State<Login> {
                 child: Text('Login'),
               ),
               SizedBox(height: 10),
-              Row(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  const Text(
-                    'New Register?',
-                    style: TextStyle(
-                      fontSize: 15,
-                    ),
-                  ),
-                  TextButton(
-                    onPressed: () {
-                      Navigator.push(context, MaterialPageRoute(builder: (context) => SignUp()));
-                    },
-                    style: ButtonStyle(
-                      textStyle: MaterialStateProperty.all<TextStyle>(TextStyle(fontSize: 16)), // Change the text style
-                      foregroundColor: MaterialStateProperty.all<Color>(Colors.blue), // Change the text color
-                    ),
-                    child: Text(
-                      'Signup',
-                      style: TextStyle(
-                        fontSize: 16,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              SizedBox(height: 20),
-              // "Sign in with Google" button
-              ElevatedButton.icon(
-                onPressed: () {
-                  // Add functionality to sign in with Google
-                },
-                icon: FaIcon(FontAwesomeIcons.google),  // Google icon
-                // Google icon
-                label: Text('Sign in with Google'), // Button text
-                style: ButtonStyle(
-                  backgroundColor: MaterialStateProperty.all<Color>(Colors.red), // Change the button color
-                  foregroundColor: MaterialStateProperty.all<Color>(Colors.white), // Change the text color
-                  padding: MaterialStateProperty.all<EdgeInsetsGeometry>(EdgeInsets.all(15)), // Change the padding
-                  shape: MaterialStateProperty.all<OutlinedBorder>(
-                    RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8), // Change the button border radius
-                    ),
-                  ),
-                ),
-              ),
+
             ],
           ),
         ),
