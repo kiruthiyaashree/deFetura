@@ -5,9 +5,8 @@ import 'package:url_launcher/url_launcher.dart';
 
 
 class Home extends StatefulWidget {
-  final String userName;
 
-  const Home({Key? key, required this.userName}) : super(key: key);
+  const Home({Key? key}) : super(key: key);
 
   @override
   State<Home> createState() => _HomeState();
@@ -83,7 +82,7 @@ class _HomeState extends State<Home> {
               ),
               IconButton(
                 onPressed: () {
-                  Navigator.push(context, MaterialPageRoute(builder: (context)=>Profile(userName : widget.userName)));
+                  Navigator.push(context, MaterialPageRoute(builder: (context)=>Profile()));
                 },
                 icon: Icon(Icons.person),
               ),
