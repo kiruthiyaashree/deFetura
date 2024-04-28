@@ -1,14 +1,25 @@
 import 'package:flutter/material.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CustomerTracking extends StatefulWidget {
-  const CustomerTracking({Key? key}) : super(key: key);
+  final String customerName;
+  const CustomerTracking({required this.customerName, Key? key}) : super(key: key);
 
   @override
   State<CustomerTracking> createState() => _CustomerTrackingState();
 }
 
 class _CustomerTrackingState extends State<CustomerTracking> {
-  List<bool> stageCompletion = List.filled(customStageNames.length, false);
+  late List<bool> stageCompletion;
+
+  @override
+  void initState() {
+    super.initState();
+    // Initialize stageCompletion list with false values
+    stageCompletion = List.filled(customStageNames.length, false);
+    // Load stage completion data from Firestore when the widget initializes
+    _loadStageCompletionData();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -37,11 +48,54 @@ class _CustomerTrackingState extends State<CustomerTracking> {
     );
   }
 
+  void _loadStageCompletionData() {
+    // Reference to the Firestore instance
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    // Reference to the document in Firestore
+    DocumentReference customerDocRef = firestore
+        .collection('customerDetails')
+        .doc(widget.customerName) // Assuming customer name is the document ID
+        .collection('tracking')
+        .doc('trackingData');
+
+    // Fetch data from Firestore and update stageCompletion list accordingly
+    customerDocRef.get().then((snapshot) {
+      if (snapshot.exists) {
+        setState(() {
+          // Extract data from snapshot and update stageCompletion list
+          Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+          for (int i = 0; i < customStageNames.length; i++) {
+            stageCompletion[i] = data[customStageNames[i]] ?? false;
+          }
+        });
+      }
+    }).catchError((error) {
+      print("Error loading stage completion data: $error");
+    });
+  }
+
   void _saveChanges() {
-    // Implement saving changes to the database here
-    // For demonstration purposes, let's print the updated stage completion statuses
-    print(stageCompletion);
-    // You can replace the above print statement with your database update logic
+    // Reference to the Firestore instance
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    // Reference to the document in Firestore
+    DocumentReference customerDocRef = firestore
+        .collection('customerDetails')
+        .doc(widget.customerName) // Assuming customer name is the document ID
+        .collection('tracking')
+        .doc('trackingData');
+
+    // Create a map of stage names and their completion statuses
+    Map<String, dynamic> data = {};
+    for (int i = 0; i < customStageNames.length; i++) {
+      data[customStageNames[i]] = stageCompletion[i];
+    }
+
+    // Update the document with the new data
+    customerDocRef.set(data, SetOptions(merge: true))
+        .then((value) => print("Tracking data updated successfully"))
+        .catchError((error) => print("Failed to update tracking data: $error"));
   }
 }
 

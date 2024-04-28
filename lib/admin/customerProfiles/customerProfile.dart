@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-
+import 'package:get/get.dart';
+import 'package:construction/admin/customerProfiles/customer_details_display_page.dart';
 import 'package:construction/admin/customerProfiles/customerdetails.dart';
 import 'package:construction/admin/customerProfiles/customerphotos.dart';
 import 'package:construction/admin/customerProfiles/customerExpenses.dart';
 import 'package:construction/admin/customerProfiles/customerTracking.dart';
-
+import '../../repositories/customer_details_repository.dart';
 class CustomerProfilePage extends StatefulWidget {
   final String customerName;
 
@@ -18,6 +19,7 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
   int _selectedIndex = 0;
 
   List<String> _appBarTitles = ['Details', 'Photos', 'Expenses', 'Tracking'];
+  final detailsRepo = Get.put(CustomerDetailsRepository());
 
   @override
   Widget build(BuildContext context) {
@@ -66,13 +68,32 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
   Widget _getBody(int index) {
     switch (index) {
       case 0:
-        return CustomerDetailsPage(customerName: widget.customerName);
+        return FutureBuilder<bool>(
+          future: detailsRepo.checkCustomerDetailsExist(widget.customerName),
+          builder: (context, snapshot) {
+            if (snapshot.connectionState == ConnectionState.waiting) {
+              // Show a loading indicator while checking for existence
+              return Center(child: CircularProgressIndicator());
+            } else if (snapshot.hasError) {
+              // Show an error message if there's an error
+              return Center(child: Text('Error: ${snapshot.error}'));
+            } else {
+              // Check if the details exist and navigate accordingly
+              if (snapshot.data!) {
+                return CustomerDetailsDisplayPage(
+                    customerName: widget.customerName,);
+              } else {
+                return CustomerDetailsPage(customerName: widget.customerName);
+              }
+            }
+          },
+        );
       case 1:
-        return CustomerPhotosPage();
+        return CustomerPhotosPage(customerName: widget.customerName,);
       case 2:
-        return CustomerExpensesPage();
+        return CustomerExpensesPage(customerName: widget.customerName,);
       case 3:
-        return CustomerTracking();
+        return CustomerTracking(customerName : widget.customerName);
       default:
         return Container();
     }
