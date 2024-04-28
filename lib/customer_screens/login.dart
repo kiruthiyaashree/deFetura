@@ -6,7 +6,8 @@ import 'package:construction/models/user_models.dart';
 import 'package:construction/repositories/user_repository.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class Login extends StatefulWidget {
-  const Login({Key? key}) : super(key: key);
+  String? customerName;
+  Login({Key? key}) : super(key: key);
 
   @override
   State<Login> createState() => _LoginState();
@@ -29,11 +30,11 @@ class _LoginState extends State<Login> {
     try {
       // Call the loginUser method from UserRepository to authenticate the user
       UserModel? user = await UserRepository.instance.loginUser(email, password);
-
+      var customerName = user?.name ?? "";
       if (user != null) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => Home()),
+            MaterialPageRoute(builder: (context) => Home(customerName: customerName,)),
           );
       } else {
         // Show error message if login fails

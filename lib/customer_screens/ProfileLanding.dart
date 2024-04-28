@@ -6,7 +6,8 @@ import 'package:flutter_pdfview/flutter_pdfview.dart';
 import 'dart:io'; // Import path_provider plugin
 
 class Profile extends StatefulWidget {
-  const Profile({Key? key}) : super(key: key);
+  String customerName;
+  Profile({required this.customerName,Key? key}) : super(key: key);
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -22,7 +23,10 @@ class _ProfileState extends State<Profile> {
     // Initialize tracking stages
     _initializeTrackingStages();
   }
-
+  String getCustomerName() {
+    // Logic to retrieve the customer's name
+    return widget.customerName; // For example, retrieve from database or user input
+  }
   List<String> customStageNames = [
     'started',
     'marking',
@@ -134,6 +138,9 @@ class _ProfileState extends State<Profile> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
+          Text(
+            'name: ${widget.customerName}',
+          ),
           Text(
             'Project Name: ABC Project',
             style: TextStyle(fontSize: 20),
@@ -416,9 +423,4 @@ class TrackingStage {
   TrackingStage({required this.stageName, required this.completed});
 }
 
-void main() {
-  runApp(MaterialApp(
-    home: Profile(),
-  ));
-}
 
