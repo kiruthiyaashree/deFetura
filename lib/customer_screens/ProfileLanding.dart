@@ -1,10 +1,15 @@
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:construction/customer_screens/feeback.dart'; // Assuming FeedbackForm is defined in this file
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'dart:io'; // Import path_provider plugin
+import 'dart:io';
 
+import '../models/customer_details_model.dart';
+import 'package:construction/repositories/customer_details_repository.dart';
+
+import 'Full_screen_photo.dart';
 class Profile extends StatefulWidget {
   String customerName;
   Profile({required this.customerName,Key? key}) : super(key: key);
@@ -16,17 +21,49 @@ class Profile extends StatefulWidget {
 class _ProfileState extends State<Profile> {
   // List to store tracking stages
   List<TrackingStage> trackingStages = [];
+  // TextEditingController _nameController = TextEditingController();
+  TextEditingController _complaintController = TextEditingController();
 
   @override
   void initState() {
     super.initState();
     // Initialize tracking stages
     _initializeTrackingStages();
+    // Load tracking steps
+    _loadTrackingSteps();
   }
-  String getCustomerName() {
-    // Logic to retrieve the customer's name
-    return widget.customerName; // For example, retrieve from database or user input
+  void _loadTrackingSteps() {
+    // Reference to the Firestore instance
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    // Reference to the document in Firestore
+    DocumentReference customerDocRef = firestore
+        .collection('customerDetails')
+        .doc(widget.customerName) // Assuming customer name is the document ID
+        .collection('tracking')
+        .doc('trackingData');
+
+    // Fetch data from Firestore and update tracking stages accordingly
+    customerDocRef.get().then((snapshot) {
+      if (snapshot.exists) {
+        // Extract data from snapshot and update tracking stages list
+        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+        setState(() {
+          for (int i = 0; i < trackingStages.length; i++) {
+            String stageName = trackingStages[i].stageName;
+            trackingStages[i] = TrackingStage(
+              stageName: stageName,
+              completed: data.containsKey(stageName) ? data[stageName] : false,
+            );
+          }
+        });
+      }
+    }).catchError((error) {
+      print("Error loading tracking data: $error");
+    });
   }
+
+
   List<String> customStageNames = [
     'started',
     'marking',
@@ -61,36 +98,38 @@ class _ProfileState extends State<Profile> {
     }
   }
 
-  Future<void> _viewPDFPlan(BuildContext context) async {
-    final String path = 'assets/plan.pdf'; // Replace with the actual path to your PDF file
-    try {
-      final tempDir = await getTemporaryDirectory();
-      final tempFilePath = '${tempDir.path}/plan.pdf';
-      final ByteData data = await rootBundle.load(path);
-      final Uint8List bytes = data.buffer.asUint8List();
-      await File(tempFilePath).writeAsBytes(bytes);
-      Navigator.of(context).push(MaterialPageRoute(builder: (_) => PDFView(filePath: tempFilePath)));
-    } catch (e) {
-      print('Error: $e');
-    }
-  }
 
   Widget _buildTrackingContent() {
+    // Count the number of completed stages
+    int completedStagesCount = trackingStages.where((stage) => stage.completed).length;
+    // Calculate the completion percentage
+    double completionPercentage = (completedStagesCount / trackingStages.length) * 100;
+
     return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
-        children: trackingStages.map((stage) {
-          return Column(
-            children: [
-              Padding(padding: EdgeInsets.symmetric(vertical: 5)),
-              _buildTrackingStep(stage.stageName, stage.completed),
-              _buildDivider(),
-            ],
-          );
-        }).toList(),
+        children: [
+          Text(
+            'Completion: ${completionPercentage.toStringAsFixed(2)}%',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          SizedBox(height: 20),
+          Column(
+            children: trackingStages.map((stage) {
+              return Column(
+                children: [
+                  Padding(padding: EdgeInsets.symmetric(vertical: 5)),
+                  _buildTrackingStep(stage.stageName, stage.completed),
+                  _buildDivider(),
+                ],
+              );
+            }).toList(),
+          ),
+        ],
       ),
     );
   }
+
 
   Widget _buildTrackingStep(String title, bool completed) {
     return Row(
@@ -134,101 +173,277 @@ class _ProfileState extends State<Profile> {
   }
 
   Widget _buildDetailsContent() {
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            'name: ${widget.customerName}',
+    return FutureBuilder<CustomerDetailsModel?>(
+      future: CustomerDetailsRepository.instance.getCustomerDetails(widget.customerName),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          final customerDetails = snapshot.data!;
+          return Center(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  'name: ${customerDetails.name}',
+                  style: TextStyle(fontSize: 20),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'Square Footage: ${customerDetails.sqrts}',
+                  style: TextStyle(fontSize: 20),
+                ),
+                SizedBox(height: 10),
+                Text(
+                  style: TextStyle(fontSize: 20),
+                  'address: ${customerDetails.address}',
+
+                ),
+                SizedBox(height: 10),
+                Text(
+                  'City: ${customerDetails.city}',
+                  style: TextStyle(fontSize: 20),
+                ),
+
+                SizedBox(height: 10),
+              ],
+            ),
+          );
+        } else {
+          return Center(child: Text('No data available'));
+        }
+      },
+    );
+  }
+
+  String addedAmount = ''; // Variable to store the added amount, initialized with an empty string
+
+  Widget _buildExpensesContent(BuildContext context) {
+    return StreamBuilder<QuerySnapshot>(
+      stream: FirebaseFirestore.instance
+          .collection('customerDetails')
+          .doc(widget.customerName)
+          .collection('expenses')
+          .snapshots(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          final List<DocumentSnapshot> documents = snapshot.data!.docs;
+          return _buildExpensesList(documents);
+        } else {
+          return Center(child: Text('No expenses available'));
+        }
+      },
+    );
+  }
+
+  Widget _buildExpensesColumn(List<DocumentSnapshot> documents, BuildContext context) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        _buildExpensesList(documents),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Text(
+            addedAmount,
+            style: TextStyle(fontSize: 16),
           ),
-          Text(
-            'Project Name: ABC Project',
-            style: TextStyle(fontSize: 20),
+        ),
+        Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Align(
+            alignment: Alignment.bottomRight,
+            child: FloatingActionButton(
+              onPressed: () {
+                _showEnterAmountDialog(context).then((value) {
+                  setState(() {
+                    addedAmount = value ?? '';
+                  });
+                });
+              },
+              child: Icon(Icons.add),
+            ),
           ),
-          SizedBox(height: 10),
-          Text(
-            'Location: XYZ Location',
-            style: TextStyle(fontSize: 20),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Construction Start Date: January 1, 2024',
-            style: TextStyle(fontSize: 20),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Construction End Date: June 30, 2025',
-            style: TextStyle(fontSize: 20),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Architect: John Doe',
-            style: TextStyle(fontSize: 20),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Contractor: XYZ Construction Company',
-            style: TextStyle(fontSize: 20),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Building Type: Domestic House',
-            style: TextStyle(fontSize: 20),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Number of Floors: 2',
-            style: TextStyle(fontSize: 20),
-          ),
-          SizedBox(height: 10),
-          Text(
-            'Total Area: 20,000 sq. ft.',
-            style: TextStyle(fontSize: 20),
-          ),
-          IconButton(
-            icon: Icon(Icons.picture_as_pdf),
-            onPressed: () {
-              _viewPDFPlan(context); // Pass the context here
-            },
-          ),
-        ],
+        ),
+      ],
+    );
+  }
+
+
+  Widget _buildExpensesList(List<DocumentSnapshot> documents) {
+    return Expanded(
+      child: SingleChildScrollView(
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: documents.map((document) {
+            final expenseData = document.data() as Map<String, dynamic>;
+            final itemName = expenseData['itemName'];
+            final expense = expenseData['expense'];
+            final hasItemName = itemName != null && itemName.isNotEmpty;
+
+            return ListTile(
+              title: Text(
+                hasItemName ? itemName : 'Credited amount',
+                style: TextStyle(
+                  color: hasItemName ? Colors.black : Colors.red,
+                ),
+              ),
+              subtitle: Text('Expense: $expense'),
+            );
+          }).toList(),
+        ),
       ),
     );
   }
 
-  Widget _buildExpensesContent(BuildContext context) {
-    return Expanded(
-      child: ListView(
-        children: [
-          ListTile(
-            title: Text('Item 1'),
-            subtitle: Text('Expense: \$100'),
+
+  Future<String?> _showEnterAmountDialog(BuildContext context) async {
+    TextEditingController _amountController = TextEditingController();
+
+    return showDialog<String>(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Enter Expense Amount'),
+          content: TextField(
+            controller: _amountController,
+            keyboardType: TextInputType.number,
+            decoration: InputDecoration(
+              labelText: 'Amount',
+            ),
           ),
-          ListTile(
-            title: Text('Item 2'),
-            subtitle: Text('Expense: \$50'),
-          ),
-          // Add more list tiles as needed
-        ],
-      ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cancel'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+            TextButton(
+              child: Text('Save'),
+              onPressed: () {
+                // Handle saving the entered amount
+                String amount = _amountController.text.trim();
+                if (amount.isNotEmpty) {
+                  _saveExpenseToFirestore(amount);
+                  // Close the dialog and pass the entered amount back to the caller
+                  Navigator.of(context).pop(amount);
+                } else {
+                  // Show an error message if the amount is empty
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(content: Text('Please enter an amount')),
+                  );
+                }
+              },
+            ),
+          ],
+        );
+      },
     );
+  }
+
+  void _saveExpenseToFirestore(String amount) {
+    // Reference to the Firestore instance
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    // Reference to the document in the "customerDetails/customerName/expenses" collection
+    CollectionReference expensesRef = firestore.collection('customerDetails').doc(widget.customerName).collection('expenses');
+
+    // Create a map with the expense data
+    Map<String, dynamic> data = {
+      'expense': amount,
+      'timestamp': DateTime.now(), // Optional: Add a timestamp for sorting or reference
+    };
+
+    // Add the expense data to Firestore
+    expensesRef.add(data)
+        .then((_) {
+      // Show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Expense added successfully')),
+      );
+    })
+        .catchError((error) {
+      // Show an error message if submission fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to add expense: $error')),
+      );
+    });
+  }
+
+  Future<List<String>> _getPhotos() async {
+    List<String> photoURLs = [];
+
+    try {
+      // Reference to the Firestore instance
+      FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+      // Query the photos sub-collection
+      QuerySnapshot querySnapshot = await firestore
+          .collection('customerDetails')
+          .doc(widget.customerName)
+          .collection('photos')
+          .get();
+
+      // Extract photo URLs from the query snapshot
+      querySnapshot.docs.forEach((doc) {
+        if (doc.exists) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          if (data.containsKey('photoURL')) {
+            photoURLs.add(data['photoURL']);
+          }
+        }
+      });
+    } catch (error) {
+      print('Error retrieving photos: $error');
+    }
+
+    return photoURLs;
   }
 
   Widget _buildPhotosContent() {
-    return Expanded(
-      child: ListView(
-        children: [
-          ListTile(
-            leading: Icon(Icons.photo),
-            title: Text('Photo 1'),
-          ),
-          ListTile(
-            leading: Icon(Icons.video_library),
-            title: Text('Video 1'),
-          ),
-          // Add more list tiles as needed
-        ],
-      ),
+    return FutureBuilder<List<String>>(
+      future: _getPhotos(),
+      builder: (context, snapshot) {
+        if (snapshot.connectionState == ConnectionState.waiting) {
+          return Center(child: CircularProgressIndicator());
+        } else if (snapshot.hasError) {
+          return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (snapshot.hasData) {
+          final List<String> photoURLs = snapshot.data!;
+          return Expanded(
+            child: GridView.builder(
+              gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+                crossAxisCount: 2,
+                crossAxisSpacing: 4.0,
+                mainAxisSpacing: 4.0,
+              ),
+              itemCount: photoURLs.length,
+              itemBuilder: (context, index) {
+                return GestureDetector(
+                  onTap: () {
+                    _viewFullScreenPhoto(context, photoURLs[index]);
+                  },
+                  child: Image.network(photoURLs[index], fit: BoxFit.cover),
+                );
+              },
+            ),
+          );
+        } else {
+          return Center(child: Text('No photos available'));
+        }
+      },
+    );
+  }
+  void _viewFullScreenPhoto(BuildContext context, String photoURL) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => FullScreenPhoto(photoURL: photoURL)),
     );
   }
 
@@ -238,22 +453,27 @@ class _ProfileState extends State<Profile> {
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          TextField(
-            decoration: InputDecoration(labelText: 'Name'),
-          ),
-          SizedBox(height: 10),
+          // Remove the TextField for entering the name
           TextField(
             decoration: InputDecoration(labelText: 'Complaint'),
+            controller: _complaintController,
           ),
           SizedBox(height: 20),
           ElevatedButton(
             onPressed: () {
-              // Implement form submission logic
+              String complaint = _complaintController.text.trim();
+              if (widget.customerName.isNotEmpty && complaint.isNotEmpty) {
+                // Pass widget.customerName instead of name
+                _submitComplaint(widget.customerName, complaint);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Customer name and complaint cannot be empty')),
+                );
+              }
             },
             child: Text('Submit'),
           ),
           SizedBox(height: 20),
-          // Implement success/fail state here
           Text(
             'Submission Success/Failure State',
             style: TextStyle(fontSize: 20),
@@ -263,8 +483,40 @@ class _ProfileState extends State<Profile> {
     );
   }
 
+
+  void _submitComplaint(String customerName, String complaint) {
+    // Reference to the Firestore instance
+    FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+    // Reference to the document in the "Users" collection and "complaints" sub-collection
+    CollectionReference complaintsRef = firestore.collection('Users').doc(customerName).collection('complaints');
+
+    // Create a map with the complaint data
+    Map<String, dynamic> data = {
+      'name': customerName, // Use customerName instead of name
+      'complaint': complaint,
+      'timestamp': DateTime.now(), // Optional: Add a timestamp for sorting or reference
+    };
+
+    // Add the complaint data to Firestore
+    complaintsRef.add(data)
+        .then((_) {
+      // Show a success message
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Complaint submitted successfully')),
+      );
+      _complaintController.clear();
+    })
+        .catchError((error) {
+      // Show an error message if submission fails
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to submit complaint: $error')),
+      );
+    });
+  }
+
   Widget _buildFeedback() {
-    return FeedbackForm();
+    return FeedbackForm(customerName:widget.customerName,);
   }
 
   @override
