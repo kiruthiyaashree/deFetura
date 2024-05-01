@@ -6,6 +6,8 @@ import 'package:construction/admin/customerProfiles/customerphotos.dart';
 import 'package:construction/admin/customerProfiles/customerExpenses.dart';
 import 'package:construction/admin/customerProfiles/customerTracking.dart';
 import '../../repositories/customer_details_repository.dart';
+import 'package:construction/admin/customerProfiles/customer_complaints_page.dart';
+import 'package:construction/admin/customerProfiles/customer_feedback_page.dart';
 class CustomerProfilePage extends StatefulWidget {
   final String customerName;
 
@@ -18,7 +20,7 @@ class CustomerProfilePage extends StatefulWidget {
 class _CustomerProfilePageState extends State<CustomerProfilePage> {
   int _selectedIndex = 0;
 
-  List<String> _appBarTitles = ['Details', 'Photos', 'Expenses', 'Tracking'];
+  List<String> _appBarTitles = ['Details', 'Photos', 'Expenses', 'Tracking', 'Complaints', 'Feedbacks'];
   final detailsRepo = Get.put(CustomerDetailsRepository());
 
   @override
@@ -51,6 +53,14 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
           BottomNavigationBarItem(
             icon: Icon(Icons.track_changes),
             label: 'Tracking',
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.warning),
+            label: 'Complaints', // Add a complaints icon and label
+          ),
+          BottomNavigationBarItem(
+            icon: Icon(Icons.feedback),
+            label: 'Feedbacks', // Add a feedbacks icon and label
           ),
         ],
         currentIndex: _selectedIndex,
@@ -94,6 +104,10 @@ class _CustomerProfilePageState extends State<CustomerProfilePage> {
         return CustomerExpensesPage(customerName: widget.customerName,);
       case 3:
         return CustomerTracking(customerName : widget.customerName);
+      case 4:
+        return CustomerComplaintsPage(customerName : widget.customerName); // Add the complaints page
+      case 5:
+        return CustomerFeedbacksPage(customerName : widget.customerName); // Add the feedbacks page
       default:
         return Container();
     }
