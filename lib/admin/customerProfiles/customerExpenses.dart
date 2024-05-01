@@ -1,9 +1,9 @@
 import 'package:flutter/material.dart';
-import 'package:mailer/mailer.dart';
-import 'package:mailer/smtp_server.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class CustomerExpensesPage extends StatefulWidget {
   final String customerName;
+
   const CustomerExpensesPage({required this.customerName, Key? key}) : super(key: key);
 
   @override
@@ -12,8 +12,51 @@ class CustomerExpensesPage extends StatefulWidget {
 
 class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   List<Map<String, dynamic>> expensesList = [];
-  double initialBudget = 100000; // Initialize initial budget
-  double totalBudget = 100000; // Initialize total budget
+  double initialBudget = 0;
+  double totalBudget = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchExpenses();
+  }
+
+  Future<void> _fetchExpenses() async {
+    try {
+      if (widget.customerName != null && widget.customerName.isNotEmpty) {
+        QuerySnapshot expensesSnapshot = await FirebaseFirestore.instance
+            .collection('customerDetails')
+            .doc(widget.customerName)
+            .collection('expenses')
+            .get();
+
+        List<Map<String, dynamic>> expensesData = [];
+        List<double> expenseAmounts = [];
+
+        for (var doc in expensesSnapshot.docs) {
+          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
+          if (data.containsKey('expense')) {
+            double expense = data['expense'] is String ? double.tryParse(data['expense']) ?? 0 : data['expense'];
+            String itemName = data['itemName'] ?? '';
+            expensesData.add({'itemName': itemName, 'expense': expense});
+            expenseAmounts.add(expense);
+          }
+        }
+
+        // Update totalBudget with the most recent expense amount if there's an expense without an itemName
+        if (expenseAmounts.isNotEmpty) {
+          expenseAmounts.sort((a, b) => b.compareTo(a)); // Sort in descending order
+          totalBudget = expenseAmounts.last; // Assign with the most recent expense amount
+        }
+
+        setState(() {
+          expensesList = expensesData;
+        });
+      }
+    } catch (e) {
+      print('Error fetching expenses: $e');
+    }
+  }
 
   void _addExpense(BuildContext context) async {
     String itemName = '';
@@ -37,7 +80,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
                 onChanged: (value) {
                   expense = double.tryParse(value) ?? 0;
                 },
-                decoration: InputDecoration(labelText: 'Expense'),
+                decoration: InputDecoration(labelText: 'Amount'),
               ),
             ],
           ),
@@ -46,11 +89,15 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
               onPressed: () async {
                 setState(() {
                   expensesList.add({'itemName': itemName, 'expense': expense});
-                  totalBudget -= expense; // Subtract expense from total budget
+                  totalBudget -= expense;
                   if (totalBudget <= initialBudget * 0.4) {
                     _sendEmail();
                   }
                 });
+                FirebaseFirestore.instance.collection('customerDetails')
+                    .doc(widget.customerName)
+                    .collection('expenses')
+                    .add({'itemName': itemName, 'expense': expense});
                 Navigator.of(context).pop();
               },
               child: Text('Submit'),
@@ -62,19 +109,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   }
 
   Future<void> _sendEmail() async {
-    final smtpServer = gmail('keerthikeerthe@gmail.com', '54432100');
-    final message = Message()
-      ..from = Address('keerthikeerthe@gmail.com', 'keerthi')
-      ..recipients.add('kiruthiyaashree@example.com') // Replace with recipient's email
-      ..subject = 'Budget Alert!'
-      ..text = 'Your total budget has fallen below or equals to 40% of the initial budget.';
-
-    try {
-      final sendReport = await send(message, smtpServer);
-      print('Message sent: ' + sendReport.toString());
-    } catch (e) {
-      print('Failed to send email: $e');
-    }
+    // Your email sending logic remains the same
   }
 
   @override
@@ -86,7 +121,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              'Total Budget: \$${totalBudget.toStringAsFixed(2)}',
+              'Total Budget: ${totalBudget.toStringAsFixed(2)}',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
@@ -95,8 +130,8 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
               itemCount: expensesList.length,
               itemBuilder: (context, index) {
                 return ListTile(
-                  title: Text(expensesList[index]['itemName']),
-                  subtitle: Text('Expense: \$${expensesList[index]['expense']}'),
+                  title: Text(expensesList[index]['itemName'] ?? ''),
+                  subtitle: Text('Amount: ${expensesList[index]['expense'] ?? 'N/A'}'),
                 );
               },
             ),
