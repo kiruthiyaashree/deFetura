@@ -19,6 +19,7 @@ class Profile extends StatefulWidget {
 }
 
 class _ProfileState extends State<Profile> {
+  double completionPercentage = 0.0;
   // List to store tracking stages
   List<TrackingStage> trackingStages = [];
   // TextEditingController _nameController = TextEditingController();
@@ -68,15 +69,15 @@ class _ProfileState extends State<Profile> {
     'started',
     'marking',
     'foundation of earth work excavation',
-    'random rubble masonatory',
-    'CR (course rubble) masontory',
+    'random rubble masonry',
+    'CR (course rubble) masonry',
     'earth filling / consolidation',
-    'PCC (plain cement congrete)',
-    'sill level brick work',
+    'PCC (plain cement concrete)',
+    'sill level brickwork',
     'sill concrete',
-    'lindel level brick work',
-    'lindel sinside loft concrete',
-    'roof level brick work',
+    'lintel level brickwork',
+    'lintel inside loft concrete',
+    'roof level brickwork',
     'roof slab RCC steel',
     'Fixing door and window frames',
     'electrical pipe gaddi work',
@@ -84,14 +85,11 @@ class _ProfileState extends State<Profile> {
     'flooring /tiles work',
     'white wash/painting work',
     'electrification',
-    'shutter fixing adn painting finish',
+    'shutter fixing and painting finish',
     'bath fittings',
-    // Add more stage names here as per your requirement
   ];
 
-  // Method to initialize tracking stages
   void _initializeTrackingStages() {
-    // You can initialize the stages with their completion status here
     for (int i = 0; i < customStageNames.length; i++) {
       String stageName = customStageNames[i];
       trackingStages.add(TrackingStage(stageName: stageName, completed: false));
@@ -100,20 +98,13 @@ class _ProfileState extends State<Profile> {
 
 
   Widget _buildTrackingContent() {
-    // Count the number of completed stages
     int completedStagesCount = trackingStages.where((stage) => stage.completed).length;
-    // Calculate the completion percentage
-    double completionPercentage = (completedStagesCount / trackingStages.length) * 100;
+    completionPercentage = (completedStagesCount / trackingStages.length) * 100;
 
     return SingleChildScrollView(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Text(
-            'Completion: ${completionPercentage.toStringAsFixed(2)}%',
-            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-          ),
-          SizedBox(height: 20),
           Column(
             children: trackingStages.map((stage) {
               return Column(
@@ -221,24 +212,36 @@ class _ProfileState extends State<Profile> {
   String addedAmount = ''; // Variable to store the added amount, initialized with an empty string
 
   Widget _buildExpensesContent(BuildContext context) {
-    return StreamBuilder<QuerySnapshot>(
-      stream: FirebaseFirestore.instance
-          .collection('customerDetails')
-          .doc(widget.customerName)
-          .collection('expenses')
-          .snapshots(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return Center(child: CircularProgressIndicator());
-        } else if (snapshot.hasError) {
-          return Center(child: Text('Error: ${snapshot.error}'));
-        } else if (snapshot.hasData) {
-          final List<DocumentSnapshot> documents = snapshot.data!.docs;
-          return _buildExpensesList(documents);
-        } else {
-          return Center(child: Text('No expenses available'));
-        }
-      },
+    return Scaffold(
+      body: StreamBuilder<QuerySnapshot>(
+        stream: FirebaseFirestore.instance
+            .collection('customerDetails')
+            .doc(widget.customerName)
+            .collection('expenses')
+            .snapshots(),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
+            return Center(child: CircularProgressIndicator());
+          } else if (snapshot.hasError) {
+            return Center(child: Text('Error: ${snapshot.error}'));
+          } else if (snapshot.hasData) {
+            final List<DocumentSnapshot> documents = snapshot.data!.docs;
+            return _buildExpensesColumn(documents, context);
+          } else {
+            return Center(child: Text('No expenses available'));
+          }
+        },
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () {
+          _showEnterAmountDialog(context).then((value) {
+            setState(() {
+              addedAmount = value ?? '';
+            });
+          });
+        },
+        child: Icon(Icons.add),
+      ),
     );
   }
 
@@ -252,22 +255,6 @@ class _ProfileState extends State<Profile> {
           child: Text(
             addedAmount,
             style: TextStyle(fontSize: 16),
-          ),
-        ),
-        Padding(
-          padding: const EdgeInsets.all(16.0),
-          child: Align(
-            alignment: Alignment.bottomRight,
-            child: FloatingActionButton(
-              onPressed: () {
-                _showEnterAmountDialog(context).then((value) {
-                  setState(() {
-                    addedAmount = value ?? '';
-                  });
-                });
-              },
-              child: Icon(Icons.add),
-            ),
           ),
         ),
       ],
@@ -590,14 +577,18 @@ class _ProfileState extends State<Profile> {
                         child: Stack(
                           alignment: Alignment.center,
                           children: [
-                            CircularProgressIndicator(
-                              value: 0.5, // Example value
-                              backgroundColor: Colors.black,
-                              valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                              strokeWidth: 4,
+                            SizedBox(
+                              width: 60,
+                              height: 60,
+                              child: CircularProgressIndicator(
+                                value: completionPercentage / 100, // Dynamic value based on completion percentage
+                                backgroundColor: Colors.black,
+                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
+                                strokeWidth: 4,
+                              ),
                             ),
                             Text(
-                              '50%', // Example percentage
+                              '${completionPercentage.toStringAsFixed(0)}%', // Show the completion percentage
                               style: TextStyle(
                                 fontSize: 15,
                                 fontWeight: FontWeight.bold,
@@ -608,9 +599,11 @@ class _ProfileState extends State<Profile> {
                         ),
                       ),
                     ),
+
                   ],
                 ),
               ),
+
               Expanded(
                 child: Container(
                   color: Colors.white,
@@ -656,10 +649,6 @@ class _ProfileState extends State<Profile> {
             label: 'Feedback',
           ),
           // Additional bottom bar items and functionalities
-          BottomNavigationBarItem(
-            icon: Icon(Icons.settings),
-            label: 'Settings',
-          ),
         ],
       ),
     );
