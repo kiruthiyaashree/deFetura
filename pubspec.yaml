@@ -39,6 +39,8 @@ dependencies:
   path_provider: ^2.0.3
   firebase_storage: ^11.7.4
   mailer: ^5.1.0
+  url_launcher: ^6.0.9
+  flutter_phone_direct_caller: ^2.1.1
 
 
   # The following adds the Cupertino Icons font to your application.
@@ -49,7 +51,6 @@ dev_dependencies:
   flutter_test:
     sdk: flutter
   image_picker: ^1.0.7
-  url_launcher: ^6.0.9
 
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
