@@ -1,6 +1,7 @@
 import 'package:construction/customer_screens/ProfileLanding.dart';
 import 'package:construction/customer_screens/login.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 
@@ -42,24 +43,22 @@ class _HomeState extends State<Home> {
 
     // Add more items as needed
   ];
-  void _launchEmail(String email, String subject, String body) async {
-    final Uri _emailLaunchUri = Uri(
+  _sendingEmail() async {
+    final Uri emailLaunchUri = Uri(
       scheme: 'mailto',
-      path: email,
-      queryParameters: {
-        'subject': subject,
-        'body': body,
-      },
+      path: 'kiruthiyaashree@gmail.com',
     );
 
-    if (await canLaunch(_emailLaunchUri.toString())) {
-      await launch(_emailLaunchUri.toString());
-    } else {
-      throw 'Could not launch email';
-    }
+    launchUrl(emailLaunchUri);
   }
+_callNumber() async{
+  const number = '9843027008'; //set the number here
+  bool? res = await FlutterPhoneDirectCaller.callNumber(number);
+}
 
-  @override
+
+
+    @override
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
@@ -121,8 +120,8 @@ class _HomeState extends State<Home> {
                           padding: const EdgeInsets.all(0),
                           child: TextButton(
                             onPressed: () {
-                              _launchEmail('kiruthiyaashree@gmail.com', 'Hello', 'This is a test email.');
-                            },
+                              _sendingEmail();
+                              },
                             child: Text(
                               'Message',
                               style: TextStyle(
@@ -144,7 +143,10 @@ class _HomeState extends State<Home> {
                         child: Padding(
                           padding: EdgeInsets.all(0),
                           child: TextButton(
-                            onPressed: () {},
+                            onPressed: () {
+                              // FlutterPhoneDirectCaller.callNumber('+91-9843027008');
+                              launch('tel:+91 9843027008');
+                            },
                             child: Text(
                               'Call',
                               style: TextStyle(
