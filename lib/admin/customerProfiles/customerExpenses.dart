@@ -24,6 +24,27 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   Future<void> _fetchExpenses() async {
     try {
       if (widget.customerName != null && widget.customerName.isNotEmpty) {
+        // Retrieve initial totalBudget from Firestore
+        DocumentSnapshot totalBudgetSnapshot = await FirebaseFirestore.instance
+            .collection('customerDetails')
+            .doc(widget.customerName)
+            .collection('totalbudget')
+            .doc('totalbudget')
+            .get();
+
+        if (totalBudgetSnapshot.exists) {
+          Map<String, dynamic>? totalBudgetData = totalBudgetSnapshot.data() as Map<String, dynamic>?;
+
+          if (totalBudgetData != null) {
+            initialBudget = totalBudgetData['initialBudget'] ?? 0;
+            totalBudget = totalBudgetData['totalBudget'] ?? 0;
+          } else {
+            // If the document doesn't exist or data is null, initialize totalBudget to 0
+            initialBudget = 0;
+            totalBudget = 0;
+          }
+        }
+
         QuerySnapshot expensesSnapshot = await FirebaseFirestore.instance
             .collection('customerDetails')
             .doc(widget.customerName)
@@ -31,22 +52,29 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
             .get();
 
         List<Map<String, dynamic>> expensesData = [];
-        List<double> expenseAmounts = [];
+        List<double> expenseAmountsWithoutItemName = [];
 
         for (var doc in expensesSnapshot.docs) {
-          Map<String, dynamic> data = doc.data() as Map<String, dynamic>;
-          if (data.containsKey('expense')) {
+          Map<String, dynamic>? data = doc.data() as Map<String, dynamic>?;
+
+          if (data != null && data.containsKey('expense')) {
             double expense = data['expense'] is String ? double.tryParse(data['expense']) ?? 0 : data['expense'];
             String itemName = data['itemName'] ?? '';
-            expensesData.add({'itemName': itemName, 'expense': expense});
-            expenseAmounts.add(expense);
+
+            // Check if the expense has no itemName
+            if (itemName.isEmpty) {
+              // Add the expense amount to the list of expenses without an itemName
+              expenseAmountsWithoutItemName.add(expense);
+            }
+
+            expensesData.add({'itemName': itemName, 'expense': expense, 'timestamp': data['timestamp']});
           }
         }
 
-        // Update totalBudget with the most recent expense amount if there's an expense without an itemName
-        if (expenseAmounts.isNotEmpty) {
-          expenseAmounts.sort((a, b) => b.compareTo(a)); // Sort in descending order
-          totalBudget = expenseAmounts.last; // Assign with the most recent expense amount
+        if (expenseAmountsWithoutItemName.isNotEmpty) {
+          print(totalBudget);
+
+          totalBudget = expenseAmountsWithoutItemName.last;
         }
 
         setState(() {
@@ -89,15 +117,32 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
               onPressed: () async {
                 setState(() {
                   expensesList.add({'itemName': itemName, 'expense': expense});
-                  totalBudget -= expense;
+                  if (itemName.isEmpty) {
+                    totalBudget -= expense;
+                  }
                   if (totalBudget <= initialBudget * 0.4) {
                     _sendEmail();
                   }
                 });
+
+                // Update totalBudget in Firestore
                 FirebaseFirestore.instance.collection('customerDetails')
                     .doc(widget.customerName)
                     .collection('expenses')
                     .add({'itemName': itemName, 'expense': expense});
+
+                // Update totalBudget in Firestore
+                FirebaseFirestore.instance.collection('customerDetails')
+                    .doc(widget.customerName)
+                    .collection('totalbudget')
+                    .doc('totalbudget')
+                    .set({'initialBudget': initialBudget, 'totalBudget': totalBudget - expense}, SetOptions(merge: true));
+
+                // Update the displayed totalBudget
+                setState(() {
+                  totalBudget -= expense;
+                });
+
                 Navigator.of(context).pop();
               },
               child: Text('Submit'),
@@ -121,7 +166,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
           Padding(
             padding: const EdgeInsets.all(8.0),
             child: Text(
-              'Total Budget: ${totalBudget.toStringAsFixed(2)}',
+              'Total Budget: $totalBudget',
               style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
             ),
           ),
