@@ -52,7 +52,7 @@ class _HomeState extends State<Home> {
     launchUrl(emailLaunchUri);
   }
 _callNumber() async{
-  const number = '9843027008'; //set the number here
+  const number = '8438005578'; //set the number here
   bool? res = await FlutterPhoneDirectCaller.callNumber(number);
 }
 
