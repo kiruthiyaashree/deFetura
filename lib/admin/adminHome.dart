@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:construction/admin/customerProfiles/customerProfile.dart';
 import 'package:get/get.dart';
 import 'package:construction/repositories/user_repository.dart';
-
+import 'package:construction/admin/adminProfile.dart';
 import '../models/user_models.dart';
 
 class AdminHome extends StatefulWidget {
@@ -43,20 +43,13 @@ class _AdminHomeState extends State<AdminHome> {
         backgroundColor: Colors.white,
         actions: [
           IconButton(
-            icon: Icon(Icons.notifications),
-            onPressed: () {
-              // Implement notification handling
-            },
-          ),
-          IconButton(
-            icon: Icon(Icons.settings),
-            onPressed: () {
-              // Implement settings page navigation
-            },
-          ),
-          IconButton(
             icon: Icon(Icons.person),
             onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => (AdminProfile()),
+                ),
+              );
               // Implement profile changing functionality
             },
           ),
