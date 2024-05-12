@@ -14,37 +14,51 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   List<Map<String, dynamic>> expensesList = [];
   double initialBudget = 0;
   double totalBudget = 0;
+  double original = 0;
 
   @override
   void initState() {
     super.initState();
+    _fetchTotalBudget();
     _fetchExpenses();
+  }
+
+  Future<void> _fetchTotalBudget() async {
+    try {
+      DocumentSnapshot totalBudgetSnapshot = await FirebaseFirestore.instance
+          .collection('customerDetails')
+          .doc(widget.customerName)
+          .collection('totalbudget')
+          .doc('totalbudget')
+          .get();
+      if (totalBudgetSnapshot.exists) {
+        Map<String, dynamic>? totalBudgetData = totalBudgetSnapshot.data() as Map<String, dynamic>?;
+
+        if (totalBudgetData != null) {
+          if(totalBudgetData['flag'] == true) {
+            original = totalBudgetData['original'] is String ? double.tryParse(totalBudgetData['original'])!  ?? 0 : totalBudgetData['original'] ?? 0;
+            totalBudget = totalBudgetData['totalbudget'] is String ? double.tryParse(totalBudgetData['totalbudget'])! ?? 0 : totalBudgetData['totalbudget'] ?? 0;
+          }
+          else{
+            totalBudget = totalBudgetData['totalbudget'] is String ? double.tryParse(totalBudgetData['totalbudget']) ?? 0 : totalBudgetData['totalbudget'] ?? 0;
+          }
+        } else {
+          initialBudget = 0;
+          totalBudget = 0;
+          original = 0;
+        }
+
+        // After fetching the totalBudget, call _fetchExpenses to ensure it's fetched before using it
+        _fetchExpenses();
+      }
+    } catch (error) {
+      print('Error fetching total budget: $error');
+    }
   }
 
   Future<void> _fetchExpenses() async {
     try {
       if (widget.customerName != null && widget.customerName.isNotEmpty) {
-        // Retrieve initial totalBudget from Firestore
-        DocumentSnapshot totalBudgetSnapshot = await FirebaseFirestore.instance
-            .collection('customerDetails')
-            .doc(widget.customerName)
-            .collection('totalbudget')
-            .doc('totalbudget')
-            .get();
-
-        if (totalBudgetSnapshot.exists) {
-          Map<String, dynamic>? totalBudgetData = totalBudgetSnapshot.data() as Map<String, dynamic>?;
-
-          if (totalBudgetData != null) {
-            initialBudget = totalBudgetData['initialBudget'] ?? 0;
-            totalBudget = totalBudgetData['totalBudget'] ?? 0;
-          } else {
-            // If the document doesn't exist or data is null, initialize totalBudget to 0
-            initialBudget = 0;
-            totalBudget = 0;
-          }
-        }
-
         QuerySnapshot expensesSnapshot = await FirebaseFirestore.instance
             .collection('customerDetails')
             .doc(widget.customerName)
@@ -59,11 +73,9 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
 
           if (data != null && data.containsKey('expense')) {
             double expense = data['expense'] is String ? double.tryParse(data['expense']) ?? 0 : data['expense'];
-            String itemName = data['itemName'] ?? '';
+            String itemName = data['itemName'] ?? 'credited amount';
 
-            // Check if the expense has no itemName
             if (itemName.isEmpty) {
-              // Add the expense amount to the list of expenses without an itemName
               expenseAmountsWithoutItemName.add(expense);
             }
 
@@ -72,9 +84,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
         }
 
         if (expenseAmountsWithoutItemName.isNotEmpty) {
-          print(totalBudget);
-
-          totalBudget = expenseAmountsWithoutItemName.last;
+          original = expenseAmountsWithoutItemName.last + totalBudget;
         }
 
         setState(() {
@@ -89,6 +99,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   void _addExpense(BuildContext context) async {
     String itemName = '';
     double expense = 0;
+    DateTime timestamp = DateTime.now();
 
     await showDialog(
       context: context,
@@ -116,34 +127,35 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
             TextButton(
               onPressed: () async {
                 setState(() {
-                  expensesList.add({'itemName': itemName, 'expense': expense});
+                  print(original * 0.3);
+                  expensesList.add({'itemName': itemName, 'expense': expense, 'timestamp': timestamp});
+                  if (totalBudget <= original * 0.3) {
+                    print("The total budget is less than or equal to 30% of the original budget.");
+                    // _sendEmail();
+                  }
                   if (itemName.isEmpty) {
                     totalBudget -= expense;
                   }
-                  if (totalBudget <= initialBudget * 0.4) {
-                    _sendEmail();
-                  }
                 });
 
-                // Update totalBudget in Firestore
-                FirebaseFirestore.instance.collection('customerDetails')
+                await FirebaseFirestore.instance.collection('customerDetails')
                     .doc(widget.customerName)
                     .collection('expenses')
-                    .add({'itemName': itemName, 'expense': expense});
+                    .add({'itemName': itemName, 'expense': expense, 'timestamp': timestamp});
 
-                // Update totalBudget in Firestore
-                FirebaseFirestore.instance.collection('customerDetails')
+                await FirebaseFirestore.instance.collection('customerDetails')
                     .doc(widget.customerName)
                     .collection('totalbudget')
                     .doc('totalbudget')
-                    .set({'initialBudget': initialBudget, 'totalBudget': totalBudget - expense}, SetOptions(merge: true));
+                    .set({'totalbudget': (totalBudget - expense).toString(),},
+                    SetOptions(merge: true));
 
-                // Update the displayed totalBudget
                 setState(() {
                   totalBudget -= expense;
                 });
 
                 Navigator.of(context).pop();
+                _fetchTotalBudget(); // Call to update total budget
               },
               child: Text('Submit'),
             ),
@@ -159,6 +171,9 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
 
   @override
   Widget build(BuildContext context) {
+    // Sort the expensesList based on timestamp in descending order
+    expensesList.sort((a, b) => (b['timestamp'] as Timestamp).compareTo(a['timestamp'] as Timestamp));
+
     return Scaffold(
       body: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -190,4 +205,5 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
       ),
     );
   }
+
 }

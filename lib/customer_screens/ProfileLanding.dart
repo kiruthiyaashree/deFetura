@@ -1,6 +1,7 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
-import 'package:construction/customer_screens/feeback.dart'; // Assuming FeedbackForm is defined in this file
+import 'package:construction/customer_screens/feeback.dart';
+// import 'package:construction/customer_screens/feedback.dart'; // Assuming FeedbackForm is defined in this file
 import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_pdfview/flutter_pdfview.dart';
@@ -10,9 +11,10 @@ import '../models/customer_details_model.dart';
 import 'package:construction/repositories/customer_details_repository.dart';
 
 import 'Full_screen_photo.dart';
+
 class Profile extends StatefulWidget {
   String customerName;
-  Profile({required this.customerName,Key? key}) : super(key: key);
+  Profile({required this.customerName, Key? key}) : super(key: key);
 
   @override
   State<Profile> createState() => _ProfileState();
@@ -33,6 +35,7 @@ class _ProfileState extends State<Profile> {
     // Load tracking steps
     _loadTrackingSteps();
   }
+
   void _loadTrackingSteps() {
     // Reference to the Firestore instance
     FirebaseFirestore firestore = FirebaseFirestore.instance;
@@ -48,13 +51,15 @@ class _ProfileState extends State<Profile> {
     customerDocRef.get().then((snapshot) {
       if (snapshot.exists) {
         // Extract data from snapshot and update tracking stages list
-        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
+        Map<String, dynamic> data =
+        snapshot.data() as Map<String, dynamic>;
         setState(() {
           for (int i = 0; i < trackingStages.length; i++) {
             String stageName = trackingStages[i].stageName;
             trackingStages[i] = TrackingStage(
               stageName: stageName,
-              completed: data.containsKey(stageName) ? data[stageName] : false,
+              completed:
+              data.containsKey(stageName) ? data[stageName] : false,
             );
           }
         });
@@ -63,7 +68,6 @@ class _ProfileState extends State<Profile> {
       print("Error loading tracking data: $error");
     });
   }
-
 
   List<String> customStageNames = [
     'started',
@@ -92,14 +96,16 @@ class _ProfileState extends State<Profile> {
   void _initializeTrackingStages() {
     for (int i = 0; i < customStageNames.length; i++) {
       String stageName = customStageNames[i];
-      trackingStages.add(TrackingStage(stageName: stageName, completed: false));
+      trackingStages
+          .add(TrackingStage(stageName: stageName, completed: false));
     }
   }
 
-
   Widget _buildTrackingContent() {
-    int completedStagesCount = trackingStages.where((stage) => stage.completed).length;
-    completionPercentage = (completedStagesCount / trackingStages.length) * 100;
+    int completedStagesCount =
+        trackingStages.where((stage) => stage.completed).length;
+    completionPercentage =
+        (completedStagesCount / trackingStages.length) * 100;
 
     return SingleChildScrollView(
       child: Column(
@@ -120,7 +126,6 @@ class _ProfileState extends State<Profile> {
       ),
     );
   }
-
 
   Widget _buildTrackingStep(String title, bool completed) {
     return Row(
@@ -165,7 +170,8 @@ class _ProfileState extends State<Profile> {
 
   Widget _buildDetailsContent() {
     return FutureBuilder<CustomerDetailsModel?>(
-      future: CustomerDetailsRepository.instance.getCustomerDetails(widget.customerName),
+      future: CustomerDetailsRepository.instance
+          .getCustomerDetails(widget.customerName),
       builder: (context, snapshot) {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
@@ -188,16 +194,14 @@ class _ProfileState extends State<Profile> {
                 ),
                 SizedBox(height: 10),
                 Text(
-                  style: TextStyle(fontSize: 20),
                   'address: ${customerDetails.address}',
-
+                  style: TextStyle(fontSize: 20),
                 ),
                 SizedBox(height: 10),
                 Text(
                   'City: ${customerDetails.city}',
                   style: TextStyle(fontSize: 20),
                 ),
-
                 SizedBox(height: 10),
               ],
             ),
@@ -218,6 +222,7 @@ class _ProfileState extends State<Profile> {
             .collection('customerDetails')
             .doc(widget.customerName)
             .collection('expenses')
+            .orderBy('timestamp', descending: true)
             .snapshots(),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.waiting) {
@@ -245,7 +250,8 @@ class _ProfileState extends State<Profile> {
     );
   }
 
-  Widget _buildExpensesColumn(List<DocumentSnapshot> documents, BuildContext context) {
+  Widget _buildExpensesColumn(
+      List<DocumentSnapshot> documents, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -260,7 +266,6 @@ class _ProfileState extends State<Profile> {
       ],
     );
   }
-
 
   Widget _buildExpensesList(List<DocumentSnapshot> documents) {
     return Expanded(
@@ -287,7 +292,6 @@ class _ProfileState extends State<Profile> {
       ),
     );
   }
-
 
   Future<String?> _showEnterAmountDialog(BuildContext context) async {
     TextEditingController _amountController = TextEditingController();
@@ -319,7 +323,7 @@ class _ProfileState extends State<Profile> {
                 if (amount.isNotEmpty) {
                   _saveExpenseToFirestore(amount);
                   // Close the dialog and pass the entered amount back to the caller
-                  Navigator.of(context).pop(amount);
+                  Navigator.of(context).pop();
                 } else {
                   // Show an error message if the amount is empty
                   ScaffoldMessenger.of(context).showSnackBar(
@@ -339,7 +343,17 @@ class _ProfileState extends State<Profile> {
     FirebaseFirestore firestore = FirebaseFirestore.instance;
 
     // Reference to the document in the "customerDetails/customerName/expenses" collection
-    CollectionReference expensesRef = firestore.collection('customerDetails').doc(widget.customerName).collection('expenses');
+    CollectionReference expensesRef = firestore
+        .collection('customerDetails')
+        .doc(widget.customerName)
+        .collection('expenses');
+
+    // Reference to the document in the "customerDetails/customerName/totalbudget" collection
+    DocumentReference totalBudgetRef = firestore
+        .collection('customerDetails')
+        .doc(widget.customerName)
+        .collection('totalbudget')
+        .doc('totalbudget');
 
     // Create a map with the expense data
     Map<String, dynamic> data = {
@@ -348,14 +362,52 @@ class _ProfileState extends State<Profile> {
     };
 
     // Add the expense data to Firestore
-    expensesRef.add(data)
-        .then((_) {
+    expensesRef.add(data).then((_) {
       // Show a success message
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Expense added successfully')),
       );
-    })
-        .catchError((error) {
+
+      // Check if the totalbudget document exists
+      totalBudgetRef.get().then((totalBudgetSnapshot) {
+        if (totalBudgetSnapshot.exists) {
+          // If the document exists, retrieve the current total budget and update it
+          Map<String, dynamic> totalBudgetData = totalBudgetSnapshot.data() as Map<String, dynamic>;
+          double currentTotalBudget = double.parse(totalBudgetData['totalbudget']);
+          double originalAmount = double.parse(amount);
+          double newTotalBudget = currentTotalBudget + originalAmount;
+          totalBudgetRef.update({'original':newTotalBudget.toString(),'totalbudget': newTotalBudget.toString()}).then((_) {
+            // Show a success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Total budget updated successfully')),
+            );
+          }).catchError((error) {
+            // Show an error message if updating the total budget fails
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to update total budget: $error')),
+            );
+          });
+        } else {
+          // If the document doesn't exist, set it with the original amount
+          totalBudgetRef.set({'flag': true, 'original': amount, 'totalbudget': amount}).then((_) {
+            // Show a success message
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Total budget added successfully')),
+            );
+          }).catchError((error) {
+            // Show an error message if setting the total budget fails
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Failed to add total budget: $error')),
+            );
+          });
+        }
+      }).catchError((error) {
+        // Show an error message if retrieving the total budget fails
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Failed to retrieve total budget: $error')),
+        );
+      });
+    }).catchError((error) {
       // Show an error message if submission fails
       ScaffoldMessenger.of(context).showSnackBar(
         SnackBar(content: Text('Failed to add expense: $error')),
@@ -427,234 +479,45 @@ class _ProfileState extends State<Profile> {
       },
     );
   }
+
   void _viewFullScreenPhoto(BuildContext context, String photoURL) {
     Navigator.push(
       context,
-      MaterialPageRoute(builder: (_) => FullScreenPhoto(photoURL: photoURL)),
-    );
-  }
-
-  Widget _buildFormContent() {
-    return Padding(
-      padding: EdgeInsets.all(20),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          // Remove the TextField for entering the name
-          TextField(
-            decoration: InputDecoration(labelText: 'Complaint'),
-            controller: _complaintController,
-          ),
-          SizedBox(height: 20),
-          ElevatedButton(
-            onPressed: () {
-              String complaint = _complaintController.text.trim();
-              if (widget.customerName.isNotEmpty && complaint.isNotEmpty) {
-                // Pass widget.customerName instead of name
-                _submitComplaint(widget.customerName, complaint);
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Customer name and complaint cannot be empty')),
-                );
-              }
-            },
-            child: Text('Submit'),
-          ),
-          SizedBox(height: 20),
-          Text(
-            'Submission Success/Failure State',
-            style: TextStyle(fontSize: 20),
-          ),
-        ],
+      MaterialPageRoute(
+        builder: (context) => FullScreenPhoto(photoURL: photoURL),
       ),
     );
-  }
-
-
-  void _submitComplaint(String customerName, String complaint) {
-    // Reference to the Firestore instance
-    FirebaseFirestore firestore = FirebaseFirestore.instance;
-
-    // Reference to the document in the "Users" collection and "complaints" sub-collection
-    CollectionReference complaintsRef = firestore.collection('Users').doc(customerName).collection('complaints');
-
-    // Create a map with the complaint data
-    Map<String, dynamic> data = {
-      'name': customerName, // Use customerName instead of name
-      'complaint': complaint,
-      'timestamp': DateTime.now(), // Optional: Add a timestamp for sorting or reference
-    };
-
-    // Add the complaint data to Firestore
-    complaintsRef.add(data)
-        .then((_) {
-      // Show a success message
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Complaint submitted successfully')),
-      );
-      _complaintController.clear();
-    })
-        .catchError((error) {
-      // Show an error message if submission fails
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to submit complaint: $error')),
-      );
-    });
-  }
-
-  Widget _buildFeedback() {
-    return FeedbackForm(customerName:widget.customerName,);
   }
 
   @override
   Widget build(BuildContext context) {
-    Widget content;
-
-    // Switching content based on the selected index
-    switch (selectedIndex) {
-      case 0:
-        content = _buildDetailsContent();
-        break;
-      case 1:
-        content = _buildTrackingContent();
-        break;
-      case 2:
-        content = _buildExpensesContent(context);
-        break;
-      case 3:
-        content = _buildPhotosContent();
-        break;
-      case 4:
-        content = _buildFormContent();
-        break;
-      case 5:
-        content = _buildFeedback();
-        break;
-      default:
-        content = SizedBox.shrink();
-    }
-
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Profile'),
-        backgroundColor: Colors.green,
-        leading: IconButton(
-          icon: Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.of(context).pop();
-          },
-        ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.person),
-            onPressed: () {
-              // Handle profile icon button press
-            },
-          ),
-        ],
-      ),
-      body: Stack(
-        children: [
-          Column(
-            children: [
-              Container(
-                height: MediaQuery.of(context).size.height * 0.2,
-                decoration: BoxDecoration(
-                  color: Colors.green,
-                  borderRadius: BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                ),
-                child: Stack(
-                  children: [
-                    Positioned(
-                      bottom: 0,
-                      left: MediaQuery.of(context).size.width * 0.5 - 50,
-                      child: Container(
-                        width: 100,
-                        height: 100,
-                        child: Stack(
-                          alignment: Alignment.center,
-                          children: [
-                            SizedBox(
-                              width: 60,
-                              height: 60,
-                              child: CircularProgressIndicator(
-                                value: completionPercentage / 100, // Dynamic value based on completion percentage
-                                backgroundColor: Colors.black,
-                                valueColor: AlwaysStoppedAnimation<Color>(Colors.white),
-                                strokeWidth: 4,
-                              ),
-                            ),
-                            Text(
-                              '${completionPercentage.toStringAsFixed(0)}%', // Show the completion percentage
-                              style: TextStyle(
-                                fontSize: 15,
-                                fontWeight: FontWeight.bold,
-                                color: Colors.black,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-
-                  ],
-                ),
-              ),
-
-              Expanded(
-                child: Container(
-                  color: Colors.white,
-                  child: Center(child: content),
-                ),
-              ),
+    return DefaultTabController(
+      length: 5,
+      child: Scaffold(
+        appBar: AppBar(
+          title: Text(widget.customerName),
+          bottom: TabBar(
+            tabs: [
+              Tab(text: 'Details'),
+              Tab(text: 'Tracking'),
+              Tab(text: 'Expenses'),
+              Tab(text: 'Photos'),
+              Tab(text: 'Feedback'),
             ],
           ),
-        ],
-      ),
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: selectedIndex,
-        onTap: (index) {
-          setState(() {
-            selectedIndex = index;
-          });
-        },
-        selectedItemColor: Colors.green,
-        unselectedItemColor: Colors.black,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.details),
-            label: 'Details',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.track_changes),
-            label: 'Tracking',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.money),
-            label: 'Expenses',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.photo),
-            label: 'Photos',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.warning),
-            label: 'Form',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.feedback),
-            label: 'Feedback',
-          ),
-          // Additional bottom bar items and functionalities
-        ],
+        ),
+        body: TabBarView(
+          children: [
+            _buildDetailsContent(),
+            _buildTrackingContent(),
+            _buildExpensesContent(context),
+            _buildPhotosContent(),
+            FeedbackForm(customerName: widget.customerName,), // Assuming FeedbackForm is a widget for collecting feedback
+          ],
+        ),
       ),
     );
   }
-
-  int selectedIndex = 0; // Index of the selected tab, defaults to 0
 }
 
 class TrackingStage {
@@ -663,5 +526,3 @@ class TrackingStage {
 
   TrackingStage({required this.stageName, required this.completed});
 }
-
-

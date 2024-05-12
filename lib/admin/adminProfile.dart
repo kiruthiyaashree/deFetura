@@ -83,6 +83,7 @@ class _AdminProfileState extends State<AdminProfile> {
     );
   }
 
+
   // Method to show dialog for updating admin details
   void _showUpdateDialog(Map<String, dynamic> data) {
 

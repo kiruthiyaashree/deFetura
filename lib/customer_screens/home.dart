@@ -103,7 +103,7 @@ _callNumber() async{
                 ),
                 SizedBox(height: 20),
                 Text('Dharani A K'),
-                Text('+91 8438005578 '),
+                Text('+91 88077 55712 '),
                 Text('dharani@gmail.com'),
                 SizedBox(height: 20),
                 Row(
@@ -203,15 +203,6 @@ _callNumber() async{
                                   ],
                                 ),
                               ],
-                            ),
-                            Align(
-                              alignment: Alignment.centerLeft,
-                              child: TextButton(
-                                onPressed: () {
-                                  // On button press action
-                                },
-                                child: Text('See more'),
-                              ),
                             ),
                           ],
                         ),
