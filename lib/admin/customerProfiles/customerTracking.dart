@@ -79,24 +79,47 @@ class _CustomerTrackingState extends State<CustomerTracking> {
     // Reference to the Firestore instance
     FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-    // Reference to the document in Firestore
-    DocumentReference customerDocRef = firestore
+    // Reference to the document in Firestore for tracking data
+    DocumentReference trackingDocRef = firestore
         .collection('customerDetails')
         .doc(widget.customerName) // Assuming customer name is the document ID
         .collection('tracking')
         .doc('trackingData');
 
+    // Reference to the document in Firestore for percentage data
+    DocumentReference percentageDocRef = firestore
+        .collection('customerDetails')
+        .doc(widget.customerName) // Assuming customer name is the document ID
+        .collection('tracking')
+        .doc('percentage');
+
     // Create a map of stage names and their completion statuses
     Map<String, dynamic> data = {};
+    int completedStages = 0;
     for (int i = 0; i < customStageNames.length; i++) {
       data[customStageNames[i]] = stageCompletion[i];
+      if (stageCompletion[i]) {
+        completedStages++;
+      }
     }
 
-    // Update the document with the new data
-    customerDocRef.set(data, SetOptions(merge: true))
-        .then((value) => print("Tracking data updated successfully"))
+    // Calculate completion percentage
+    double completionPercentage = (completedStages / customStageNames.length) * 100;
+    completionPercentage = double.parse(completionPercentage.toStringAsFixed(2)); // Round to two decimal places
+
+// Update the tracking data document with the new data
+    trackingDocRef.set(data, SetOptions(merge: true))
+        .then((value) {
+      print("Tracking data updated successfully");
+      // Update the percentage document with the completion percentage
+      percentageDocRef.set({'percentage': completionPercentage}, SetOptions(merge: true))
+          .then((value) => print("Completion percentage updated successfully"))
+          .catchError((error) => print("Failed to update completion percentage: $error"));
+    })
         .catchError((error) => print("Failed to update tracking data: $error"));
+
   }
+
 }
 
 List<String> customStageNames = [

@@ -1,12 +1,14 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:construction/customer_screens/complaints.dart';
 import 'package:flutter/material.dart';
 import 'package:construction/customer_screens/feeback.dart';
-// import 'package:construction/customer_screens/feedback.dart'; // Assuming FeedbackForm is defined in this file
-import 'package:path_provider/path_provider.dart';
 import 'package:flutter/services.dart';
-import 'package:flutter_pdfview/flutter_pdfview.dart';
-import 'dart:io';
 
+import '../../api/pdf_api.dart';
+import '../../api/pdf_invoice_api.dart';
+import '../../models/architect.dart';
+import '../../models/customer.dart';
+import '../../models/invoice.dart';
 import '../models/customer_details_model.dart';
 import 'package:construction/repositories/customer_details_repository.dart';
 
@@ -40,26 +42,31 @@ class _ProfileState extends State<Profile> {
     // Reference to the Firestore instance
     FirebaseFirestore firestore = FirebaseFirestore.instance;
 
-    // Reference to the document in Firestore
-    DocumentReference customerDocRef = firestore
+    // Reference to the document in Firestore for tracking data
+    DocumentReference trackingDocRef = firestore
         .collection('customerDetails')
         .doc(widget.customerName) // Assuming customer name is the document ID
         .collection('tracking')
         .doc('trackingData');
 
-    // Fetch data from Firestore and update tracking stages accordingly
-    customerDocRef.get().then((snapshot) {
+    // Reference to the document in Firestore for percentage data
+    DocumentReference percentageDocRef = firestore
+        .collection('customerDetails')
+        .doc(widget.customerName) // Assuming customer name is the document ID
+        .collection('tracking')
+        .doc('percentage');
+
+    // Fetch data from Firestore for tracking steps
+    trackingDocRef.get().then((snapshot) {
       if (snapshot.exists) {
         // Extract data from snapshot and update tracking stages list
-        Map<String, dynamic> data =
-        snapshot.data() as Map<String, dynamic>;
+        Map<String, dynamic> data = snapshot.data() as Map<String, dynamic>;
         setState(() {
           for (int i = 0; i < trackingStages.length; i++) {
             String stageName = trackingStages[i].stageName;
             trackingStages[i] = TrackingStage(
               stageName: stageName,
-              completed:
-              data.containsKey(stageName) ? data[stageName] : false,
+              completed: data.containsKey(stageName) ? data[stageName] : false,
             );
           }
         });
@@ -67,7 +74,25 @@ class _ProfileState extends State<Profile> {
     }).catchError((error) {
       print("Error loading tracking data: $error");
     });
+
+    // Fetch data from Firestore for completion percentage
+    percentageDocRef.get().then((percentageSnapshot) {
+      if (percentageSnapshot.exists) {
+        setState(() {
+          // Cast data to Map<String, dynamic> to safely access the value
+          Map<String, dynamic>? data = percentageSnapshot.data() as Map<String, dynamic>?;
+
+          // Access the "percentage" value if data is not null
+          completionPercentage = data?["percentage"] ?? 0.0;
+        });
+      }
+    }).catchError((error) {
+      print("Error loading completion percentage: $error");
+    });
+
+
   }
+
 
   List<String> customStageNames = [
     'started',
@@ -237,17 +262,64 @@ class _ProfileState extends State<Profile> {
           }
         },
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          _showEnterAmountDialog(context).then((value) {
-            setState(() {
-              addedAmount = value ?? '';
-            });
-          });
-        },
+        floatingActionButton: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [FloatingActionButton(
+                onPressed: () {
+              _showEnterAmountDialog(context).then((value) {
+                setState(() {
+                  addedAmount = value ?? '';
+                });
+              });
+            },
         child: Icon(Icons.add),
-      ),
+            ),
+            SizedBox(height: 16), // Add some spacing between the buttons
+            FloatingActionButton(
+              onPressed: () => _downloadPdf(),
+              tooltip: 'Download Invoice',
+              child: Icon(Icons.download),
+            ),
+          ],
+        ),
+
     );
+  }
+
+
+  Future<void> _downloadPdf() async {
+    try {
+      final invoice = Invoice(
+          architect: Architect(
+            name: 'dharani',
+            address: 'tiruppur',
+          ),
+          customer: Customer(
+            name: 'sample',
+            address: 'erode',
+          ),
+          info: InvoiceInfo(
+            date: '23/8/24',
+          ),
+          items: [
+            InvoiceItem(
+              itemname: 'cement',
+              expense: '34000',
+            ),
+            InvoiceItem(
+              itemname: 'pipes',
+              expense: '4400',
+            ),
+          ]
+      );
+      final pdfFile = await PDFInvoiceApi.generate(invoice);
+      PdfApi.openFile(pdfFile);
+    }
+    catch(error)
+    {
+      print(error);
+    }
   }
 
   Widget _buildExpensesColumn(
@@ -490,34 +562,87 @@ class _ProfileState extends State<Profile> {
   }
 
   @override
+  @override
   Widget build(BuildContext context) {
     return DefaultTabController(
-      length: 5,
+      length: 6,
       child: Scaffold(
         appBar: AppBar(
           title: Text(widget.customerName),
-          bottom: TabBar(
-            tabs: [
-              Tab(text: 'Details'),
-              Tab(text: 'Tracking'),
-              Tab(text: 'Expenses'),
-              Tab(text: 'Photos'),
-              Tab(text: 'Feedback'),
-            ],
-          ),
         ),
-        body: TabBarView(
+        body: Column(
           children: [
-            _buildDetailsContent(),
-            _buildTrackingContent(),
-            _buildExpensesContent(context),
-            _buildPhotosContent(),
-            FeedbackForm(customerName: widget.customerName,), // Assuming FeedbackForm is a widget for collecting feedback
+            Padding(
+              padding: EdgeInsets.symmetric(vertical: 20),
+              child:Container(
+                margin: EdgeInsets.symmetric(horizontal: 20),
+                decoration: BoxDecoration(
+                  borderRadius: BorderRadius.circular(10),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.grey.withOpacity(0.5),
+                      spreadRadius: 5,
+                      blurRadius: 7,
+                      offset: Offset(0, 3), // changes position of shadow
+                    ),
+                  ],
+                ),
+                child: Container(
+                  padding: EdgeInsets.symmetric(vertical: 40, horizontal: 100),
+                  decoration: BoxDecoration(
+                    color: Colors.green,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text(
+                        'Completion Percentage: ${completionPercentage.toStringAsFixed(0)}%',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+
+            ),
+            Expanded(
+              child: TabBarView(
+                children: [
+                  _buildDetailsContent(),
+                  _buildTrackingContent(),
+                  _buildExpensesContent(context),
+                  _buildPhotosContent(),
+                  ComplaintPage(customerName: widget.customerName),
+                  FeedbackForm(customerName: widget.customerName),
+                ],
+              ),
+            ),
           ],
+        ),
+        bottomNavigationBar: TabBar(
+          tabs: [
+            Tab(icon: Icon(Icons.details)),
+            Tab(icon: Icon(Icons.track_changes)),
+            Tab(icon: Icon(Icons.attach_money)),
+            Tab(icon: Icon(Icons.photo)),
+            Tab(icon: Icon(Icons.report_problem)),
+            Tab(icon: Icon(Icons.feedback)),
+          ],
+          labelColor: Colors.blue,
+          unselectedLabelColor: Colors.grey,
+          indicatorSize: TabBarIndicatorSize.label,
+          indicatorPadding: EdgeInsets.all(5.0),
+          indicatorColor: Colors.blue,
         ),
       ),
     );
   }
+
+
 }
 
 class TrackingStage {

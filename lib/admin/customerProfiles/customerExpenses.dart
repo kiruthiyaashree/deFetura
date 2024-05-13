@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+
 class CustomerExpensesPage extends StatefulWidget {
   final String customerName;
 
@@ -15,7 +16,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   double initialBudget = 0;
   double totalBudget = 0;
   double original = 0;
-
+// timestamp infos
   @override
   void initState() {
     super.initState();
@@ -36,6 +37,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
 
         if (totalBudgetData != null) {
           if(totalBudgetData['flag'] == true) {
+            // update flag
             original = totalBudgetData['original'] is String ? double.tryParse(totalBudgetData['original'])!  ?? 0 : totalBudgetData['original'] ?? 0;
             totalBudget = totalBudgetData['totalbudget'] is String ? double.tryParse(totalBudgetData['totalbudget'])! ?? 0 : totalBudgetData['totalbudget'] ?? 0;
           }
@@ -96,6 +98,14 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
     }
   }
 
+
+  void _validateAndMail()
+  {
+    if (totalBudget <= original * 0.3) {
+      print("The total budget is less than or equal to 30% of the original budget.");
+      _sendEmail();
+    }
+  }
   void _addExpense(BuildContext context) async {
     String itemName = '';
     double expense = 0;
@@ -127,12 +137,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
             TextButton(
               onPressed: () async {
                 setState(() {
-                  print(original * 0.3);
                   expensesList.add({'itemName': itemName, 'expense': expense, 'timestamp': timestamp});
-                  if (totalBudget <= original * 0.3) {
-                    print("The total budget is less than or equal to 30% of the original budget.");
-                    // _sendEmail();
-                  }
                   if (itemName.isEmpty) {
                     totalBudget -= expense;
                   }
@@ -153,7 +158,7 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
                 setState(() {
                   totalBudget -= expense;
                 });
-
+                _validateAndMail();
                 Navigator.of(context).pop();
                 _fetchTotalBudget(); // Call to update total budget
               },
@@ -166,44 +171,57 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   }
 
   Future<void> _sendEmail() async {
-    // Your email sending logic remains the same
-  }
 
-  @override
-  Widget build(BuildContext context) {
-    // Sort the expensesList based on timestamp in descending order
-    expensesList.sort((a, b) => (b['timestamp'] as Timestamp).compareTo(a['timestamp'] as Timestamp));
+    }
 
-    return Scaffold(
-      body: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Padding(
-            padding: const EdgeInsets.all(8.0),
-            child: Text(
-              'Total Budget: $totalBudget',
-              style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+    @override
+    Widget build(BuildContext context) {
+      // Sort the expensesList based on timestamp in descending order
+      expensesList.sort((a, b) =>
+          (b['timestamp'] as Timestamp).compareTo(a['timestamp'] as Timestamp));
+
+      return Scaffold(
+        body: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Padding(
+              padding: const EdgeInsets.all(8.0),
+              child: Text(
+                'Total Budget: $totalBudget',
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
-          ),
-          Expanded(
-            child: ListView.builder(
-              itemCount: expensesList.length,
-              itemBuilder: (context, index) {
-                return ListTile(
-                  title: Text(expensesList[index]['itemName'] ?? ''),
-                  subtitle: Text('Amount: ${expensesList[index]['expense'] ?? 'N/A'}'),
-                );
-              },
+            Expanded(
+              child: ListView.builder(
+                itemCount: expensesList.length,
+                itemBuilder: (context, index) {
+                  return ListTile(
+                    title: Text(expensesList[index]['itemName'] ?? ''),
+                    subtitle: Text(
+                        'Amount: ${expensesList[index]['expense'] ?? 'N/A'}'),
+                  );
+                },
+              ),
             ),
-          ),
-        ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _addExpense(context),
-        tooltip: 'Add Expense',
-        child: Icon(Icons.attach_money),
-      ),
-    );
-  }
+          ],
+        ),
+        floatingActionButton: Column(
+          mainAxisAlignment: MainAxisAlignment.end,
+          crossAxisAlignment: CrossAxisAlignment.end,
+          children: [
+            FloatingActionButton(
+              onPressed: () => _addExpense(context),
+              tooltip: 'Add Expense',
+              child: Icon(Icons.attach_money),
+            ),
+            SizedBox(height: 16), // Add some spacing between the buttons
+
+          ],
+        ),
+
+      );
+    }
+
 
 }
+
