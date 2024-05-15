@@ -290,39 +290,66 @@ class _ProfileState extends State<Profile> {
 
   Future<void> _downloadPdf() async {
     try {
-      final invoice = Invoice(
+      // Reference to the customer details repository
+      CustomerDetailsRepository _repository = CustomerDetailsRepository
+          .instance;
+
+      // Retrieve the city for the customer
+      String? customerCity = await _repository.getCustomerCity(
+          widget.customerName);
+
+      // If the city is available
+      if (customerCity != null) {
+        // Reference to the Firestore instance
+        FirebaseFirestore firestore = FirebaseFirestore.instance;
+
+        // Reference to the document in the "customerDetails/customerName/expenses" collection
+        CollectionReference expensesRef = firestore
+            .collection('customerDetails')
+            .doc(widget.customerName)
+            .collection('expenses');
+
+        // Create an empty list to hold the invoice items
+        List<InvoiceItem> invoiceItems = [];
+
+        // Fetch the invoice items from Firestore
+        QuerySnapshot itemsSnapshot = await expensesRef.get();
+
+        itemsSnapshot.docs.forEach((doc) {
+          Map<String, dynamic> itemData = doc.data() as Map<String, dynamic>;
+          String itemName = itemData['itemName'] ??
+              'Credited Amount'; // Provide a default value if itemName is null
+          String expense = itemData['expense']?.toString() ??
+              '0.0'; // Convert expense to string and provide a default value if it's null
+          invoiceItems.add(InvoiceItem(itemname: itemName, expense: expense));
+        });
+        DateTime now = DateTime.now();
+        final invoice = Invoice(
           architect: Architect(
             name: 'dharani',
-            address: 'tiruppur',
+            address: 'Rakiapalayam, Kangeyam road, Tirupur – 641 606\nE-mail - defutuera@gmail.com\nMobile No: 87544 53639',
           ),
           customer: Customer(
-            name: 'sample',
-            address: 'erode',
+            name: widget.customerName,
+            address: customerCity,
           ),
           info: InvoiceInfo(
-            date: '23/8/24',
+            date: '${now.day}/${now.month}/${now.year} ${now.hour}:${now.minute}:${now.second}',
           ),
-          items: [
-            InvoiceItem(
-              itemname: 'cement',
-              expense: '34000',
-            ),
-            InvoiceItem(
-              itemname: 'pipes',
-              expense: '4400',
-            ),
-          ]
-      );
-      final pdfFile = await PDFInvoiceApi.generate(invoice);
-      PdfApi.openFile(pdfFile);
+          items: invoiceItems,
+        );
+
+        final pdfFile = await PDFInvoiceApi.generate(invoice);
+        PdfApi.openFile(pdfFile);
+      }
     }
-    catch(error)
-    {
+      catch(error) {
       print(error);
     }
   }
 
-  Widget _buildExpensesColumn(
+
+    Widget _buildExpensesColumn(
       List<DocumentSnapshot> documents, BuildContext context) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -588,7 +615,7 @@ class _ProfileState extends State<Profile> {
                   ],
                 ),
                 child: Container(
-                  padding: EdgeInsets.symmetric(vertical: 40, horizontal: 100),
+                  padding: EdgeInsets.symmetric(vertical: 40, horizontal: 80),
                   decoration: BoxDecoration(
                     color: Colors.green,
                     borderRadius: BorderRadius.circular(10),

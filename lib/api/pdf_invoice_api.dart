@@ -21,14 +21,15 @@ class PDFInvoiceApi {
       ),
     );
 
-    return PdfApi.saveDocument(name: 'my_invoice.pdf', pdf: pdf);
+    return PdfApi.saveDocument(name: 'Expenses.pdf', pdf: pdf);
   }
 
   static Widget buildTitle(Invoice invoice) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
+      SizedBox(height: 30),
       Text(
-        'INVOICE',
+        'Expenses List',
         style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
       ),
       SizedBox(height: 0.8 * PdfPageFormat.cm),
@@ -97,6 +98,7 @@ class PDFInvoiceApi {
         ],
       ),
       SizedBox(height: 1 * PdfPageFormat.cm),
+
       Row(
         crossAxisAlignment: CrossAxisAlignment.end,
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -109,8 +111,7 @@ class PDFInvoiceApi {
   );
 
   static Widget buildInvoiceInfo(InvoiceInfo info) {
-    final paymentTerms = '${info.date} days';
-    final titles = ['Invoice Date:'];
+    final titles = ['Date:'];
     final data = [info.date];
 
     return Column(

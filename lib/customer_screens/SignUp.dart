@@ -4,7 +4,6 @@ import 'package:flutter/material.dart';
 import 'package:construction/customer_screens/login.dart';
 import 'package:get/get.dart';
 import 'package:get/get_core/src/get_main.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 class SignUp extends StatefulWidget {
   const SignUp({Key? key}) : super(key: key);

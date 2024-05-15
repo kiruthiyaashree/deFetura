@@ -19,6 +19,7 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
   late TextEditingController squareFootageController;
   late TextEditingController addressController;
   late TextEditingController cityController;
+  late TextEditingController phoneNumberController;
 
   @override
   void initState() {
@@ -27,6 +28,8 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
     squareFootageController = TextEditingController();
     addressController = TextEditingController();
     cityController = TextEditingController();
+    phoneNumberController = TextEditingController();
+
   }
 
   @override
@@ -66,6 +69,10 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                 controller: cityController,
                 decoration: InputDecoration(labelText: 'City'),
               ),
+              TextFormField(
+                controller: phoneNumberController,
+                decoration: InputDecoration(labelText: 'Phone Number'),
+              ),
               ElevatedButton(
                 child: Text('Submit'),
                 onPressed: () async {
@@ -74,12 +81,15 @@ class _CustomerDetailsPageState extends State<CustomerDetailsPage> {
                   final squareFootage =squareFootageController.text;
                   final address = addressController.text;
                   final city = cityController.text;
+                  final phonenumber = phoneNumberController.text;
+
 
                   final customerDetail = CustomerDetailsModel(
                     name: customerName,
                     sqrts: squareFootage,
                     address: address,
                     city: city,
+                    phonenumber: phonenumber,
                   );
 
                   try {

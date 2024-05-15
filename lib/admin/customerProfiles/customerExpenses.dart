@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-
-
+// import 'package:sms/sms.dart';
 class CustomerExpensesPage extends StatefulWidget {
   final String customerName;
 
@@ -16,6 +15,8 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
   double initialBudget = 0;
   double totalBudget = 0;
   double original = 0;
+
+
 // timestamp infos
   @override
   void initState() {
@@ -169,13 +170,20 @@ class _CustomerExpensesPageState extends State<CustomerExpensesPage> {
       },
     );
   }
+  void _sendSMS(String message, List<String> recipents) async {
 
+  }
   Future<void> _sendEmail() async {
+    String message = "This is a test message!";
+    List<String> recipents = ["8438005578"];
+
+    _sendSMS(message, recipents);
 
     }
 
     @override
     Widget build(BuildContext context) {
+
       // Sort the expensesList based on timestamp in descending order
       expensesList.sort((a, b) =>
           (b['timestamp'] as Timestamp).compareTo(a['timestamp'] as Timestamp));

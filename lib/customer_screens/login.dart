@@ -4,7 +4,6 @@ import 'package:construction/customer_screens/home.dart';
 import 'package:construction/admin/adminHome.dart';
 import 'package:construction/models/user_models.dart';
 import 'package:construction/repositories/user_repository.dart';
-import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 class Login extends StatefulWidget {
   String? customerName;
   Login({Key? key}) : super(key: key);
@@ -27,31 +26,36 @@ class _LoginState extends State<Login> {
         MaterialPageRoute(builder: (context) => AdminHome()),
       );
     }
-    try {
-      // Call the loginUser method from UserRepository to authenticate the user
-      UserModel? user = await UserRepository.instance.loginUser(email, password);
-      var customerName = user?.name ?? "";
-      if (user != null) {
+    else {
+      try {
+        // Call the loginUser method from UserRepository to authenticate the user
+        UserModel? user = await UserRepository.instance.loginUser(
+            email, password);
+        var customerName = user?.name ?? "";
+        if (user != null) {
           Navigator.pushReplacement(
             context,
-            MaterialPageRoute(builder: (context) => Home(customerName: customerName,)),
+            MaterialPageRoute(
+                builder: (context) => Home(customerName: customerName,)),
           );
-      } else {
-        // Show error message if login fails
+        } else {
+          // Show error message if login fails
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Invalid email or password. Please try again.'),
+            ),
+          );
+        }
+      } catch (error) {
+        // Handle any errors that occur during login
+        print("Login error: $error");
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Invalid email or password. Please try again.'),
+            content: Text(
+                'An error occurred while logging in. Please try again later.'),
           ),
         );
       }
-    } catch (error) {
-      // Handle any errors that occur during login
-      print("Login error: $error");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text('An error occurred while logging in. Please try again later.'),
-        ),
-      );
     }
   }
 
@@ -101,23 +105,6 @@ class _LoginState extends State<Login> {
                         _showPassword = !_showPassword;
                       });
                     },
-                  ),
-                ),
-              ),
-              SizedBox(height: 10),
-              Align(
-                alignment: Alignment.centerRight,
-                child: TextButton(
-                  onPressed: () {
-                    // Add functionality to handle forgot password
-                  },
-                  child: Text(
-                    'Forgot Password?',
-                    style: TextStyle(
-                      color: Colors.black,
-                      decoration: TextDecoration.underline,
-                      decorationThickness: 2,
-                    ),
                   ),
                 ),
               ),

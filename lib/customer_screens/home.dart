@@ -1,7 +1,6 @@
 import 'package:construction/customer_screens/ProfileLanding.dart';
 import 'package:construction/customer_screens/login.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_phone_direct_caller/flutter_phone_direct_caller.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 
@@ -51,10 +50,7 @@ class _HomeState extends State<Home> {
 
     launchUrl(emailLaunchUri);
   }
-_callNumber() async{
-  const number = '8438005578'; //set the number here
-  bool? res = await FlutterPhoneDirectCaller.callNumber(number);
-}
+
 
 
 
@@ -95,7 +91,7 @@ _callNumber() async{
               children: [
                 ClipOval(
                   child: Image(
-                    image: AssetImage('assets/profile.jpg'),
+                    image: AssetImage('assets/profile.jpeg'),
                     width: 60,
                     height: 60,
                     fit: BoxFit.cover,

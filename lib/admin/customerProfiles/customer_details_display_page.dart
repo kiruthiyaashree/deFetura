@@ -1,6 +1,8 @@
+// customer_details_display_page.dart
 import 'package:flutter/material.dart';
-import 'package:construction/models/customer_details_model.dart'; // Import CustomerDetailsModel
+import 'package:construction/models/customer_details_model.dart';
 import 'package:construction/repositories/customer_details_repository.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class CustomerDetailsDisplayPage extends StatelessWidget {
   final String customerName;
@@ -13,18 +15,16 @@ class CustomerDetailsDisplayPage extends StatelessWidget {
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: FutureBuilder<CustomerDetailsModel?>(
-          future: CustomerDetailsRepository.instance.getCustomerDetails(customerName), // Call method to retrieve customer details
+          future: CustomerDetailsRepository.instance.getCustomerDetails(customerName),
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
-              // Show a loading indicator while retrieving details
               return Center(child: CircularProgressIndicator());
             } else if (snapshot.hasError) {
-              // Show an error message if there's an error
               return Center(child: Text('Error: ${snapshot.error}'));
             } else {
-              // If details are available, display them
-              if (snapshot.data != null) {
-                return _displayCustomerDetails(snapshot.data!);
+              final customerDetails = snapshot.data;
+              if (customerDetails != null) {
+                return _displayCustomerDetails(customerDetails);
               } else {
                 return Center(child: Text('No customer details available.'));
               }
@@ -46,7 +46,7 @@ class CustomerDetailsDisplayPage extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            customerDetails.name,
+            customerDetails.name ?? 'N/A',
             style: TextStyle(fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -57,7 +57,7 @@ class CustomerDetailsDisplayPage extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            '${customerDetails.sqrts} sqft',
+            '${customerDetails.sqrts ?? 'N/A'} sqft',
             style: TextStyle(fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -68,7 +68,7 @@ class CustomerDetailsDisplayPage extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            customerDetails.address,
+            customerDetails.address ?? 'N/A',
             style: TextStyle(fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -79,7 +79,32 @@ class CustomerDetailsDisplayPage extends StatelessWidget {
           ),
           SizedBox(height: 4),
           Text(
-            customerDetails.city,
+            customerDetails.city ?? 'N/A',
+            style: TextStyle(fontSize: 16),
+            textAlign: TextAlign.center,
+          ),
+          SizedBox(height: 16),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text(
+                'Phone Number:',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+              ),
+              SizedBox(width: 8),
+              IconButton(
+                icon: Icon(Icons.phone),
+                onPressed: () {
+                  // Implement calling functionality here
+                  print(customerDetails.phonenumber);
+                  launch('tel:${customerDetails.phonenumber.toString()}');
+                },
+              ),
+            ],
+          ),
+          SizedBox(height: 4),
+          Text(
+            customerDetails.phonenumber ?? 'N/A', // Null check for phone number
             style: TextStyle(fontSize: 16),
             textAlign: TextAlign.center,
           ),
@@ -87,6 +112,6 @@ class CustomerDetailsDisplayPage extends StatelessWidget {
         ],
       ),
     );
-
   }
+
 }

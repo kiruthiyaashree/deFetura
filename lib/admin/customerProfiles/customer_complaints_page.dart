@@ -24,18 +24,20 @@ class CustomerComplaintsPage extends StatelessWidget {
         if (snapshot.connectionState == ConnectionState.waiting) {
           return Center(child: CircularProgressIndicator());
         } else if (snapshot.hasError) {
+          print('Error fetching data: ${snapshot.error}');
           return Center(child: Text('Error: ${snapshot.error}'));
+        } else if (!snapshot.hasData || snapshot.data!.docs.isEmpty) {
+          print('No complaints available');
+          return Center(child: Text('No complaints available'));
         } else {
           final complaints = snapshot.data!.docs;
-          if (complaints.isEmpty) {
-            return Center(child: Text('No complaints available'));
-          }
           return ListView.builder(
             itemCount: complaints.length,
             itemBuilder: (context, index) {
               final complaintData = complaints[index].data() as Map<String, dynamic>;
+              print('Complaint Data: $complaintData');
               return ListTile(
-                title: Text(complaintData['complaint'] ?? ''),
+                title: Text(complaintData['comment'] ?? 'No complaint title'),
               );
             },
           );

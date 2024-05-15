@@ -37,6 +37,18 @@ class CustomerDetailsRepository extends GetxController {
       throw error;
     }
   }
+  Future<String?> getCustomerCity(String customerName) async {
+    try {
+      final snapshot = await _db.collection("customerDetails").where('name', isEqualTo: customerName).get();
+      if (snapshot.docs.isNotEmpty) {
+        return snapshot.docs.first.get('city') as String?;
+      }
+      return null;
+    } catch (error) {
+      print("Error retrieving customer city: $error");
+      rethrow;
+    }
+  }
 
   Future<String?> getCustomerEmail(String customerName) async {
     try {
